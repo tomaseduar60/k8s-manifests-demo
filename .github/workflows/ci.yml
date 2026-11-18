@@ -40,4 +40,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: pip install --quiet yamllint
-      - run: yamllint -d "{extends: relaxed, rules: {line-length: {max: 160}}}" apps platform argocd
+      - name: yamllint
+        run: |
+          yamllint -d "{extends: relaxed, rules: {line-length: {max: 160}}}" apps platform argocd
