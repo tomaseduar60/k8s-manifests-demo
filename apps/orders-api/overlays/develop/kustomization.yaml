@@ -54,3 +54,17 @@ patches:
       - op: replace
         path: /spec/topicName
         value: develop.orders.orders-created-dlq
+  - target:
+      kind: ConfigMap
+      name: orders-api
+    patch: |-
+      - op: replace
+        path: /data/KAFKA_TOPIC_ORDERS
+        value: develop.orders.orders-created
+  - target:
+      kind: ScaledObject
+      name: orders-worker
+    patch: |-
+      - op: replace
+        path: /spec/triggers/0/metadata/topic
+        value: develop.orders.orders-created
