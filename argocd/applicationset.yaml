@@ -1,0 +1,54 @@
+# Una Application por ambiente, generadas a partir de una lista.
+# Sumar un ambiente (o un servicio con la misma estructura) es agregar un elemento.
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: orders-api
+  namespace: argocd
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+    - list:
+        elements:
+          - env: develop
+            cluster: https://kubernetes.default.svc
+            autoSync: true
+          - env: qa
+            cluster: https://kubernetes.default.svc
+            autoSync: true
+          - env: production
+            cluster: https://prd-cluster.example.com
+            autoSync: false
+  template:
+    metadata:
+      name: "orders-api-{{ .env }}"
+      labels:
+        environment: "{{ .env }}"
+    spec:
+      project: orders
+      source:
+        repoURL: https://github.com/tomaseduar60/k8s-manifests-demo.git
+        targetRevision: main
+        path: "apps/orders-api/overlays/{{ .env }}"
+      destination:
+        server: "{{ .cluster }}"
+        namespace: "orders-{{ .env }}"
+      syncPolicy:
+        syncOptions:
+          - CreateNamespace=true
+          - ServerSideApply=true
+        retry:
+          limit: 5
+          backoff:
+            duration: 10s
+            factor: 2
+            maxDuration: 3m
+  templatePatch: |
+    {{- if .autoSync }}
+    spec:
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+    {{- end }}
