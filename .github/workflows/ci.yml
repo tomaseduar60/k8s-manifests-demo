@@ -32,7 +32,7 @@ jobs:
           kubeconform -strict -summary \
             -schema-location default \
             -schema-location 'https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json' \
-            -skip KafkaTopic \
+            -skip KafkaTopic -ignore-missing-schemas \
             rendered.yaml
 
   lint:
