@@ -1,0 +1,52 @@
+# KEDA escala el worker por lag del consumer group en Confluent Cloud.
+# Con lag 0 baja a minReplicaCount; cada 50 mensajes de lag por partición suma un pod.
+apiVersion: keda.sh/v1alpha1
+kind: TriggerAuthentication
+metadata:
+  name: orders-worker-kafka
+spec:
+  secretTargetRef:
+    - parameter: sasl
+      name: orders-worker-keda
+      key: sasl
+    - parameter: username
+      name: orders-api
+      key: KAFKA_API_KEY
+    - parameter: password
+      name: orders-api
+      key: KAFKA_API_SECRET
+    - parameter: tls
+      name: orders-worker-keda
+      key: tls
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: orders-worker-keda
+type: Opaque
+stringData:
+  # No son credenciales: solo el modo de autenticación que espera el scaler de Kafka.
+  sasl: plaintext
+  tls: enable
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: orders-worker
+spec:
+  scaleTargetRef:
+    name: orders-worker
+  minReplicaCount: 1
+  maxReplicaCount: 12 # no sirve pasar la cantidad de particiones del topic
+  pollingInterval: 15
+  cooldownPeriod: 120
+  triggers:
+    - type: kafka
+      metadata:
+        bootstrapServers: pkc-example.us-central1.gcp.confluent.cloud:9092
+        consumerGroup: orders-worker
+        topic: orders.orders-created
+        lagThreshold: "50"
+        offsetResetPolicy: earliest
+      authenticationRef:
+        name: orders-worker-kafka
