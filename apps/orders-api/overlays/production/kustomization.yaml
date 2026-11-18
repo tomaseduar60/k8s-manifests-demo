@@ -1,0 +1,42 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: orders-production
+resources:
+  - ../../base
+labels:
+  - pairs:
+      environment: production
+    includeSelectors: false
+images:
+  - name: us-docker.pkg.dev/my-project/apps/orders-api
+    newTag: "0000000" # lo actualiza el pipeline con el head SHA del PR
+  - name: us-docker.pkg.dev/my-project/apps/orders-worker
+    newTag: "0000000"
+patches:
+  - target:
+      kind: HorizontalPodAutoscaler
+      name: orders-api
+    patch: |-
+      - op: replace
+        path: /spec/minReplicas
+        value: 3
+      - op: replace
+        path: /spec/maxReplicas
+        value: 10
+  - target:
+      kind: Deployment
+      name: orders-api
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/requests/cpu
+        value: 250m
+  - target:
+      kind: Ingress
+      name: orders-api
+    patch: |-
+      - op: replace
+        path: /spec/rules/0/host
+        value: orders.example.com
+      - op: replace
+        path: /spec/tls/0/hosts/0
+        value: orders.example.com
