@@ -1,0 +1,43 @@
+name: ci
+
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    branches: [develop, qa, main]
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        overlay: [develop, qa, production]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: herramientas
+        run: |
+          curl -sSL https://github.com/yannh/kubeconform/releases/download/v0.6.7/kubeconform-linux-amd64.tar.gz | tar xz
+          sudo mv kubeconform /usr/local/bin/
+
+      - name: kustomize build
+        run: kubectl kustomize apps/orders-api/overlays/${{ matrix.overlay }} > rendered.yaml
+
+      - name: kubeconform
+        run: |
+          kubeconform -strict -summary \
+            -schema-location default \
+            -schema-location 'https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json' \
+            -skip KafkaTopic \
+            rendered.yaml
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: pip install --quiet yamllint
+      - run: yamllint -d "{extends: relaxed, rules: {line-length: {max: 160}}}" apps platform argocd
