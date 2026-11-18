@@ -1,0 +1,21 @@
+# AppProject: qué repos puede usar el equipo y en qué namespaces puede desplegar.
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: orders
+  namespace: argocd
+spec:
+  description: Servicios del dominio orders
+  sourceRepos:
+    - https://github.com/tomaseduar60/k8s-manifests-demo.git
+  destinations:
+    - server: "*"
+      namespace: orders-*
+  clusterResourceWhitelist:
+    - group: ""
+      kind: Namespace
+  namespaceResourceWhitelist:
+    - group: "*"
+      kind: "*"
+  orphanedResources:
+    warn: true
